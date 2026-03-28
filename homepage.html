@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fermented Photographer — Photography</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Mono:wght@300;400&family=Bebas+Neue&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Bebas Neue', 'sans-serif'],
+            serif: ['Cormorant Garamond', 'serif'],
+            mono: ['DM Mono', 'monospace'],
+          },
+          colors: {
+            cream: '#F5F0E8',
+            charcoal: '#1A1A1A',
+            rust: '#C84B31',
+            amber: '#E8A838',
+            sage: '#7A9E7E',
+            blush: '#D4A0A0',
+            ink: '#0D0D0D',
+          },
+          animation: {
+            'fade-up': 'fadeUp 0.8s ease forwards',
+            'slide-in': 'slideIn 1s ease forwards',
+            'grain': 'grain 0.5s steps(1) infinite',
+          },
+          keyframes: {
+            fadeUp: {
+              '0%': { opacity: 0, transform: 'translateY(40px)' },
+              '100%': { opacity: 1, transform: 'translateY(0)' },
+            },
+            slideIn: {
+              '0%': { opacity: 0, transform: 'translateX(-60px)' },
+              '100%': { opacity: 1, transform: 'translateX(0)' },
+            },
+            grain: {
+              '0%, 100%': { transform: 'translate(0,0)' },
+              '10%': { transform: 'translate(-2%,-3%)' },
+              '30%': { transform: 'translate(3%,-1%)' },
+              '50%': { transform: 'translate(-1%,2%)' },
+              '70%': { transform: 'translate(2%,3%)' },
+              '90%': { transform: 'translate(-3%,1%)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    :root {
+      --cream: #F5F0E8;
+      --charcoal: #1A1A1A;
+      --rust: #C84B31;
+      --amber: #E8A838;
+      --sage: #7A9E7E;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--charcoal);
+      color: var(--cream);
+      cursor: none;
+      overflow-x: hidden;
+    }
+
+    /* Custom cursor */
+    #cursor {
+      position: fixed;
+      width: 12px; height: 12px;
+      background: var(--rust);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      transition: transform 0.1s ease, width 0.25s ease, height 0.25s ease, background 0.25s ease;
+      mix-blend-mode: difference;
+    }
+    #cursor-ring {
+      position: fixed;
+      width: 40px; height: 40px;
+      border: 1px solid rgba(245,240,232,0.4);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9998;
+      transform: translate(-50%, -50%);
+      transition: transform 0.18s ease, width 0.3s ease, height 0.3s ease;
+    }
+    body.hovering #cursor { width: 6px; height: 6px; background: var(--amber); }
+    body.hovering #cursor-ring { width: 60px; height: 60px; border-color: var(--amber); }
+
+    /* Grain overlay */
+    .grain::after {
+      content: '';
+      position: fixed;
+      inset: -200%;
+      width: 400%; height: 400%;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 9990;
+      opacity: 0.06;
+      animation: grain 0.5s steps(1) infinite;
+    }
+
+    /* Nav */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; mix-blend-mode: difference; }
+
+    /* Hero */
+    .hero-bg {
+      background: linear-gradient(135deg, #1A1A1A 0%, #0D0D0D 60%, #1f1209 100%);
+    }
+
+    /* Gallery grid — masonry-like */
+    .gallery-grid {
+      columns: 3;
+      column-gap: 12px;
+    }
+    @media (max-width: 768px) { .gallery-grid { columns: 2; } }
+    @media (max-width: 480px) { .gallery-grid { columns: 1; } }
+
+    .gallery-item {
+      break-inside: avoid;
+      margin-bottom: 12px;
+      position: relative;
+      overflow: hidden;
+      cursor: none;
+    }
+
+    .gallery-item img {
+      display: block;
+      width: 100%;
+      transition: transform 0.7s cubic-bezier(0.25,0.46,0.45,0.94);
+      filter: saturate(0.85) contrast(1.05);
+    }
+    .gallery-item:hover img { transform: scale(1.06); filter: saturate(1.2) contrast(1.1); }
+
+    .gallery-item .overlay {
+      position: absolute; inset: 0;
+      background: linear-gradient(to top, rgba(13,13,13,0.75) 0%, transparent 60%);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      display: flex; align-items: flex-end; padding: 1.2rem;
+    }
+    .gallery-item:hover .overlay { opacity: 1; }
+
+    /* Category tag pill */
+    .tag {
+      display: inline-block;
+      padding: 2px 10px;
+      border: 1px solid currentColor;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    /* Horizontal scrolling strip */
+    .marquee-wrap { overflow: hidden; }
+    .marquee-track {
+      display: flex;
+      white-space: nowrap;
+      animation: marquee 22s linear infinite;
+    }
+    .marquee-track:hover { animation-play-state: paused; }
+    @keyframes marquee {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* Scroll reveal */
+    .reveal { opacity: 0; transform: translateY(50px); transition: opacity 0.8s ease, transform 0.8s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .reveal-left { opacity: 0; transform: translateX(-60px); transition: opacity 0.8s ease, transform 0.8s ease; }
+    .reveal-left.visible { opacity: 1; transform: translateX(0); }
+
+    /* Section divider line */
+    .divider {
+      width: 60px; height: 1px;
+      background: var(--rust);
+      margin-bottom: 1.5rem;
+    }
+
+    /* About split */
+    .about-img {
+      position: relative;
+    }
+    .about-img::before {
+      content: '';
+      position: absolute;
+      top: 16px; left: 16px;
+      right: -16px; bottom: -16px;
+      border: 1px solid var(--rust);
+      z-index: 0;
+    }
+    .about-img img { position: relative; z-index: 1; }
+
+    /* Contact input */
+    input, textarea {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(245,240,232,0.2);
+      color: var(--cream);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.85rem;
+      padding: 0.75rem 0;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+    input:focus, textarea:focus { border-color: var(--amber); }
+    input::placeholder, textarea::placeholder { color: rgba(245,240,232,0.3); letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.72rem; }
+
+    /* Lightbox */
+    #lightbox {
+      position: fixed; inset: 0; z-index: 9000;
+      background: rgba(13,13,13,0.96);
+      display: none; align-items: center; justify-content: center;
+      padding: 2rem;
+    }
+    #lightbox.open { display: flex; }
+    #lightbox img { max-width: 90vw; max-height: 85vh; object-fit: contain; }
+    #lightbox-close {
+      position: absolute; top: 1.5rem; right: 2rem;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      cursor: none;
+      color: var(--cream);
+      opacity: 0.5;
+      transition: opacity 0.2s;
+    }
+    #lightbox-close:hover { opacity: 1; }
+
+    /* Sticky counter */
+    .stat-num {
+      font-family: 'Bebas Neue', sans-serif;
+      line-height: 1;
+    }
+
+    /* Filter buttons */
+    .filter-btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border: 1px solid rgba(245,240,232,0.15);
+      color: rgba(245,240,232,0.45);
+      transition: all 0.3s;
+      cursor: none;
+      background: transparent;
+    }
+    .filter-btn:hover, .filter-btn.active {
+      border-color: var(--rust);
+      color: var(--cream);
+      background: rgba(200,75,49,0.08);
+    }
+
+    /* Scroll progress bar */
+    #progress-bar {
+      position: fixed; top: 0; left: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--rust), var(--amber));
+      z-index: 200;
+      transition: width 0.1s;
+    }
+  </style>
+</head>
+<body class="grain">
+
+  <!-- Custom Cursor -->
+  <div id="cursor"></div>
+  <div id="cursor-ring"></div>
+
+  <!-- Scroll Progress -->
+  <div id="progress-bar" style="width:0%"></div>
+
+  <!-- Lightbox -->
+  <div id="lightbox">
+    <span id="lightbox-close">[ CLOSE — ESC ]</span>
+    <img id="lightbox-img" src="" alt="" />
+  </div>
+
+  <!-- ═══════════ NAV ═══════════ -->
+  <nav class="px-8 py-6 flex items-center justify-between">
+    <a href="#" class="font-display text-2xl tracking-widest text-cream hover:text-rust transition-colors">KRUPA</a>
+    <div class="hidden md:flex gap-10">
+      <a href="#work"    class="font-mono text-xs tracking-widest uppercase text-cream/50 hover:text-cream transition-colors">Work</a>
+      <a href="#about"   class="font-mono text-xs tracking-widest uppercase text-cream/50 hover:text-cream transition-colors">About</a>
+      <a href="#contact" class="font-mono text-xs tracking-widest uppercase text-cream/50 hover:text-cream transition-colors">Contact</a>
+    </div>
+    <a href="#contact" class="font-mono text-xs tracking-widest uppercase border border-rust text-rust px-5 py-2 hover:bg-rust hover:text-cream transition-all">Hire me</a>
+  </nav>
+
+  <!-- ═══════════ HERO ═══════════ -->
+  <section class="hero-bg min-h-screen flex flex-col justify-center relative overflow-hidden px-8 md:px-20 pt-24">
+
+    <!-- Decorative vertical text -->
+    <div class="absolute right-8 top-1/2 -translate-y-1/2 hidden lg:block">
+      <span style="writing-mode:vertical-rl; letter-spacing:0.4em;" class="font-mono text-xs text-cream/15 uppercase">Photography · Visual Stories · 2024</span>
+    </div>
+
+    <!-- Big number background -->
+    <div class="absolute top-0 right-0 font-display text-[22rem] leading-none text-cream/[0.025] select-none pointer-events-none">01</div>
+
+    <div class="max-w-5xl">
+      <p class="font-mono text-xs tracking-widest uppercase text-rust mb-6 reveal" style="animation-delay:0.1s">
+        ● Portfolio — Vol. III
+      </p>
+
+      <h1 class="font-display text-[clamp(4rem,12vw,9rem)] leading-none tracking-wide text-cream mb-6 reveal" style="animation-delay:0.2s">
+        LIGHT IS<br/>
+        <span class="text-amber">EVERY&shy;THING</span>
+      </h1>
+
+      <p class="font-serif italic text-xl md:text-2xl text-cream/60 max-w-xl leading-relaxed reveal" style="animation-delay:0.35s">
+        I chase the golden hour, the raw emotion, the fleeting seconds that most people never notice.
+      </p>
+
+      <div class="flex flex-wrap gap-5 mt-12 reveal" style="animation-delay:0.5s">
+        <a href="#work" class="font-mono text-sm tracking-widest uppercase bg-rust text-cream px-8 py-4 hover:bg-amber hover:text-charcoal transition-all">View Work</a>
+        <a href="#about" class="font-mono text-sm tracking-widest uppercase border border-cream/20 text-cream/60 px-8 py-4 hover:border-cream hover:text-cream transition-all">About Me</a>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="flex flex-wrap gap-12 mt-20 border-t border-cream/10 pt-10 reveal" style="animation-delay:0.65s">
+      <div>
+        <div class="stat-num text-5xl text-rust">2</div>
+        <div class="font-mono text-xs tracking-widest uppercase text-cream/35 mt-1">Years Shooting</div>
+      </div>
+      <div>
+        <div class="stat-num text-5xl text-amber">18</div>
+        <div class="font-mono text-xs tracking-widest uppercase text-cream/35 mt-1">Projects Done</div>
+      </div>
+      <div>
+        <div class="stat-num text-5xl text-sage">∞</div>
+        <div class="font-mono text-xs tracking-widest uppercase text-cream/35 mt-1">Hours Obsessing</div>
+      </div>
+      <div>
+        <div class="stat-num text-5xl text-blush">1</div>
+        <div class="font-mono text-xs tracking-widest uppercase text-cream/35 mt-1">Camera. All In.</div>
+      </div>
+    </div>
+
+    <!-- Scroll hint -->
+    <div class="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-30">
+      <span class="font-mono text-xs tracking-widest uppercase text-cream">Scroll</span>
+      <div class="w-px h-12 bg-cream animate-bounce"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════ MARQUEE ═══════════ -->
+  <div class="marquee-wrap bg-rust py-3 overflow-hidden">
+    <div class="marquee-track">
+      <span class="font-display text-2xl tracking-widest text-cream mr-16">PORTRAIT</span>
+      <span class="font-display text-2xl tracking-widest text-cream/40 mr-16">✦</span>
+      <span class="font-display text-2xl tracking-widest text-cream mr-16">LANDSCAPE</span>
+      <span class="font-display text-2xl tracking-widest text-cream/40 mr-16">✦</span>
+      <span class="font-display text-2xl tracking-widest text-cream mr-16">STREET</span>
+      <span class="font-display text-2xl tracking-widest text-cream/40 mr-16">✦</span>
+      <span class="font-display text-2xl tracking-widest text-cream mr-16">EDITORIAL</span>
+      <span class="font-display text-2xl tracking-widest text-cream/40 mr-16">✦</span>
+      <span class="font-display text-2xl tracking-widest text-cream mr-16">FINE ART</span>
+      <span class="font-display text-2xl tracking-widest text-cream/40 mr-16">✦</span>
+      <!-- Duplicate for seamless loop -->
+      <span class="font-display text-2xl tracking-widest text-cream mr-16">PORTRAIT</span>
+      <span class="font-display text-2xl tracking-widest text-cream/40 mr-16">✦</span>
+      <span class="font-display text-2xl tracking-widest text-cream mr-16">LANDSCAPE</span>
+      <span class="font-display text-2xl tracking-widest text-cream/40 mr-16">✦</span>
+      <span class="font-display text-2xl tracking-widest text-cream mr-16">STREET</span>
+      <span class="font-display text-2xl tracking-widest text-cream/40 mr-16">✦</span>
+      <span class="font-display text-2xl tracking-widest text-cream mr-16">EDITORIAL</span>
+      <span class="font-display text-2xl tracking-widest text-cream/40 mr-16">✦</span>
+      <span class="font-display text-2xl tracking-widest text-cream mr-16">FINE ART</span>
+      <span class="font-display text-2xl tracking-widest text-cream/40 mr-16">✦</span>
+    </div>
+  </div>
+
+  <!-- ═══════════ WORK / GALLERY ═══════════ -->
+  <section id="work" class="py-24 px-8 md:px-16">
+
+    <div class="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+      <div class="reveal">
+        <div class="divider"></div>
+        <h2 class="font-display text-6xl md:text-7xl tracking-wide text-cream">SELECTED<br/>WORK</h2>
+      </div>
+      <!-- Filter Buttons -->
+      <div class="flex flex-wrap gap-2 reveal">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="portrait">Portrait</button>
+        <button class="filter-btn" data-filter="landscape">Landscape</button>
+        <button class="filter-btn" data-filter="street">Street</button>
+        <button class="filter-btn" data-filter="editorial">Editorial</button>
+      </div>
+    </div>
+
+    <div class="gallery-grid" id="gallery">
+
+      <!-- Using picsum with fixed seeds for consistent aesthetic photos -->
+      <div class="gallery-item reveal" data-category="portrait">
+        <img src="https://picsum.photos/seed/lyra1/600/800" alt="Portrait study in morning light" loading="lazy"/>
+        <div class="overlay">
+          <div>
+            <span class="tag text-amber border-amber">Portrait</span>
+            <p class="font-serif italic text-cream/80 text-sm mt-2">Morning Reverie, 2024</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-item reveal" data-category="landscape">
+        <img src="https://picsum.photos/seed/lyra2/600/450" alt="Vast mountain landscape" loading="lazy"/>
+        <div class="overlay">
+          <div>
+            <span class="tag text-sage border-sage">Landscape</span>
+            <p class="font-serif italic text-cream/80 text-sm mt-2">Edge of Silence, 2023</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-item reveal" data-category="street">
+        <img src="https://picsum.photos/seed/lyra3/600/700" alt="Urban street photography" loading="lazy"/>
+        <div class="overlay">
+          <div>
+            <span class="tag text-rust border-rust">Street</span>
+            <p class="font-serif italic text-cream/80 text-sm mt-2">Neon Veins, 2024</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-item reveal" data-category="editorial">
+        <img src="https://picsum.photos/seed/lyra4/600/900" alt="Editorial fashion shoot" loading="lazy"/>
+        <div class="overlay">
+          <div>
+            <span class="tag text-blush border-blush">Editorial</span>
+            <p class="font-serif italic text-cream/80 text-sm mt-2">Velvet & Ash, 2024</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-item reveal" data-category="landscape">
+        <img src="https://picsum.photos/seed/lyra5/600/500" alt="Golden hour landscape" loading="lazy"/>
+        <div class="overlay">
+          <div>
+            <span class="tag text-sage border-sage">Landscape</span>
+            <p class="font-serif italic text-cream/80 text-sm mt-2">Gilded Hour, 2023</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-item reveal" data-category="portrait">
+        <img src="https://picsum.photos/seed/lyra6/600/750" alt="Close-up portrait" loading="lazy"/>
+        <div class="overlay">
+          <div>
+            <span class="tag text-amber border-amber">Portrait</span>
+            <p class="font-serif italic text-cream/80 text-sm mt-2">Second Skin, 2024</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-item reveal" data-category="street">
+        <img src="https://picsum.photos/seed/lyra7/600/600" alt="Street life at night" loading="lazy"/>
+        <div class="overlay">
+          <div>
+            <span class="tag text-rust border-rust">Street</span>
+            <p class="font-serif italic text-cream/80 text-sm mt-2">After Midnight, 2023</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-item reveal" data-category="editorial">
+        <img src="https://picsum.photos/seed/lyra8/600/850" alt="High fashion editorial" loading="lazy"/>
+        <div class="overlay">
+          <div>
+            <span class="tag text-blush border-blush">Editorial</span>
+            <p class="font-serif italic text-cream/80 text-sm mt-2">Fracture, 2024</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-item reveal" data-category="landscape">
+        <img src="https://picsum.photos/seed/lyra9/600/480" alt="Ocean at dusk" loading="lazy"/>
+        <div class="overlay">
+          <div>
+            <span class="tag text-sage border-sage">Landscape</span>
+            <p class="font-serif italic text-cream/80 text-sm mt-2">Salt & Dusk, 2023</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-item reveal" data-category="portrait">
+        <img src="https://picsum.photos/seed/lyra10/600/820" alt="Studio portrait" loading="lazy"/>
+        <div class="overlay">
+          <div>
+            <span class="tag text-amber border-amber">Portrait</span>
+            <p class="font-serif italic text-cream/80 text-sm mt-2">Tungsten, 2024</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-item reveal" data-category="street">
+        <img src="https://picsum.photos/seed/lyra11/600/660" alt="Street corner life" loading="lazy"/>
+        <div class="overlay">
+          <div>
+            <span class="tag text-rust border-rust">Street</span>
+            <p class="font-serif italic text-cream/80 text-sm mt-2">Corner Ghosts, 2024</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="gallery-item reveal" data-category="editorial">
+        <img src="https://picsum.photos/seed/lyra12/600/780" alt="Moody editorial" loading="lazy"/>
+        <div class="overlay">
+          <div>
+            <span class="tag text-blush border-blush">Editorial</span>
+            <p class="font-serif italic text-cream/80 text-sm mt-2">Bloom & Char, 2023</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════ FEATURED / WIDE SINGLE ═══════════ -->
+  <section class="relative overflow-hidden my-12">
+    <div class="relative">
+      <img src="https://picsum.photos/seed/lyrawide/1600/700" alt="Featured photograph" class="w-full object-cover" style="height:clamp(300px,55vh,700px);" />
+      <div class="absolute inset-0 bg-gradient-to-r from-charcoal/90 via-charcoal/30 to-transparent flex items-center px-12 md:px-24">
+        <div class="reveal-left max-w-lg">
+          <span class="font-mono text-xs tracking-widest uppercase text-rust">Featured Work</span>
+          <h3 class="font-display text-5xl md:text-7xl text-cream mt-3 leading-none">THE QUIET<br/>GRADIENT</h3>
+          <p class="font-serif italic text-cream/60 text-lg mt-4 leading-relaxed">A personal project exploring stillness and solitude — shot over several weekends in and around the city.</p>
+          <a href="#" class="inline-block font-mono text-xs tracking-widest uppercase border-b border-rust text-rust pb-1 mt-6 hover:text-amber hover:border-amber transition-colors">View Full Series →</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ ABOUT ═══════════ -->
+  <section id="about" class="py-28 px-8 md:px-20 max-w-6xl mx-auto">
+    <div class="grid md:grid-cols-2 gap-20 items-center">
+
+      <div class="about-img reveal-left">
+        <img src="https://picsum.photos/seed/lyraportraitself/600/720" alt="Lyra Voss — Photographer" class="w-full object-cover" style="max-height:580px;" />
+      </div>
+
+      <div class="reveal">
+        <div class="divider"></div>
+        <h2 class="font-display text-6xl tracking-wide text-cream mb-6">ABOUT<br/>KRUPA</h2>
+        <p class="font-serif text-lg text-cream/70 leading-loose mb-5 italic">
+          "I picked up my first camera two years ago and haven't put it down since. Every shoot teaches me something new — that's what keeps me going."
+        </p>
+        <p class="font-mono text-sm text-cream/50 leading-relaxed mb-5">
+          Based in Bengaluru, I'm a self-taught photographer finding my voice through portraits, street life, and whatever light the day offers. Still early in the journey — but deeply committed to it.
+        </p>
+        <p class="font-mono text-sm text-cream/50 leading-relaxed mb-10">
+          I shoot mostly on a single camera and natural light. No fancy studio — just curiosity, patience, and a good eye for the moment.
+        </p>
+
+        <div class="grid grid-cols-2 gap-6 mb-10">
+          <div>
+            <div class="font-mono text-xs tracking-widest uppercase text-rust mb-2">Gear</div>
+            <ul class="font-mono text-xs text-cream/45 space-y-1">
+              <li>Fujifilm XT5</li>
+              <li>16-50mm</li>
+              <li>Natural Light</li>
+              <li>Lightroom</li>
+            </ul>
+          </div>
+          <div>
+            <div class="font-mono text-xs tracking-widest uppercase text-amber mb-2">Currently Into</div>
+            <ul class="font-mono text-xs text-cream/45 space-y-1">
+              <li>Street Portraiture</li>
+              <li>Golden Hour</li>
+              <li>Film Simulation</li>
+              <li>Shooting Daily</li>
+            </ul>
+          </div>
+        </div>
+
+        <a href="#contact" class="font-mono text-sm tracking-widest uppercase bg-rust text-cream px-8 py-4 hover:bg-amber hover:text-charcoal transition-all inline-block">Let's Work Together</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ SERVICES ═══════════ -->
+  <section class="py-20 px-8 md:px-20 border-t border-cream/10">
+    <div class="max-w-6xl mx-auto">
+      <div class="reveal mb-14">
+        <div class="divider"></div>
+        <h2 class="font-display text-6xl tracking-wide text-cream">SERVICES</h2>
+      </div>
+      <div class="grid md:grid-cols-3 gap-px bg-cream/10">
+        <div class="bg-charcoal p-10 hover:bg-ink transition-colors group reveal">
+          <div class="font-mono text-xs tracking-widest uppercase text-rust mb-6">01</div>
+          <h3 class="font-display text-3xl text-cream mb-4 group-hover:text-amber transition-colors">Portrait</h3>
+          <p class="font-mono text-xs text-cream/40 leading-relaxed">Editorial, personal, and fine-art portraiture. Half-day and full-day rates available.</p>
+        </div>
+        <div class="bg-charcoal p-10 hover:bg-ink transition-colors group reveal">
+          <div class="font-mono text-xs tracking-widest uppercase text-amber mb-6">02</div>
+          <h3 class="font-display text-3xl text-cream mb-4 group-hover:text-amber transition-colors">Editorial</h3>
+          <p class="font-mono text-xs text-cream/40 leading-relaxed">Magazine features, brand lookbooks, and campaign photography for print and digital.</p>
+        </div>
+        <div class="bg-charcoal p-10 hover:bg-ink transition-colors group reveal">
+          <div class="font-mono text-xs tracking-widest uppercase text-sage mb-6">03</div>
+          <h3 class="font-display text-3xl text-cream mb-4 group-hover:text-amber transition-colors">Landscape</h3>
+          <p class="font-mono text-xs text-cream/40 leading-relaxed">Long-form documentary travel and fine-art landscape projects. Print editions available.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ CONTACT ═══════════ -->
+  <section id="contact" class="py-28 px-8 md:px-20 max-w-4xl mx-auto">
+    <div class="reveal mb-14">
+      <div class="divider"></div>
+      <h2 class="font-display text-6xl md:text-7xl tracking-wide text-cream">LET'S<br/><span class="text-rust">TALK</span></h2>
+      <p class="font-serif italic text-cream/50 text-xl mt-4">New projects, collaborations, or just a conversation about light.</p>
+    </div>
+
+    <form class="reveal space-y-10" id="contact-form">
+      <div class="grid md:grid-cols-2 gap-10">
+        <div>
+          <input type="text" placeholder="Your Name" required />
+        </div>
+        <div>
+          <input type="email" placeholder="Email Address" required />
+        </div>
+      </div>
+      <div>
+        <input type="text" placeholder="Subject / Project Type" />
+      </div>
+      <div>
+        <textarea placeholder="Tell me about your project..." rows="5" style="resize:none;"></textarea>
+      </div>
+      <div class="flex items-center justify-between flex-wrap gap-4">
+        <div class="font-mono text-xs text-cream/25 tracking-widest uppercase">Based in Bengaluru · Open to Collaborations</div>
+        <button type="submit" class="font-mono text-sm tracking-widest uppercase bg-rust text-cream px-10 py-4 hover:bg-amber hover:text-charcoal transition-all">Send Message</button>
+      </div>
+    </form>
+
+    <!-- Social Links -->
+    <div class="flex gap-8 mt-16 pt-10 border-t border-cream/10 reveal">
+      <a href="#" class="font-mono text-xs tracking-widest uppercase text-cream/30 hover:text-rust transition-colors">Instagram</a>
+      <a href="#" class="font-mono text-xs tracking-widest uppercase text-cream/30 hover:text-rust transition-colors">Behance</a>
+      <a href="#" class="font-mono text-xs tracking-widest uppercase text-cream/30 hover:text-rust transition-colors">VSCO</a>
+      <a href="#" class="font-mono text-xs tracking-widest uppercase text-cream/30 hover:text-rust transition-colors">LinkedIn</a>
+    </div>
+  </section>
+
+  <!-- ═══════════ FOOTER ═══════════ -->
+  <footer class="px-8 md:px-20 py-10 border-t border-cream/10 flex flex-col md:flex-row justify-between items-center gap-4">
+    <span class="font-display text-xl tracking-widest text-cream/30">LYRA VOSS</span>
+    <span class="font-mono text-xs text-cream/20 tracking-widest uppercase">© 2024 — All Rights Reserved</span>
+    <span class="font-mono text-xs text-cream/20 tracking-widest uppercase">Bengaluru, India</span>
+  </footer>
+
+  <!-- ═══════════ JAVASCRIPT ═══════════ -->
+  <script>
+    // ── Custom Cursor ──
+    const cursor = document.getElementById('cursor');
+    const ring   = document.getElementById('cursor-ring');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+
+    document.addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      cursor.style.left = mx + 'px';
+      cursor.style.top  = my + 'px';
+    });
+
+    // Smooth ring follow
+    (function animRing() {
+      rx += (mx - rx) * 0.12;
+      ry += (my - ry) * 0.12;
+      ring.style.left = rx + 'px';
+      ring.style.top  = ry + 'px';
+      requestAnimationFrame(animRing);
+    })();
+
+    document.querySelectorAll('a, button, .gallery-item, .filter-btn').forEach(el => {
+      el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+      el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+    });
+
+    // ── Scroll Progress Bar ──
+    window.addEventListener('scroll', () => {
+      const doc = document.documentElement;
+      const pct = doc.scrollTop / (doc.scrollHeight - doc.clientHeight) * 100;
+      document.getElementById('progress-bar').style.width = pct + '%';
+    });
+
+    // ── Scroll Reveal ──
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((e, i) => {
+        if (e.isIntersecting) {
+          setTimeout(() => e.target.classList.add('visible'), i * 80);
+          observer.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal, .reveal-left').forEach(el => observer.observe(el));
+
+    // ── Gallery Filter ──
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const galleryItems = document.querySelectorAll('.gallery-item');
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const filter = btn.dataset.filter;
+        galleryItems.forEach(item => {
+          const match = filter === 'all' || item.dataset.category === filter;
+          item.style.transition = 'opacity 0.4s, transform 0.4s';
+          if (match) {
+            item.style.opacity = '1';
+            item.style.transform = 'scale(1)';
+            item.style.display = '';
+          } else {
+            item.style.opacity = '0';
+            item.style.transform = 'scale(0.95)';
+            setTimeout(() => { if (!match) item.style.display = 'none'; }, 400);
+          }
+        });
+      });
+    });
+
+    // ── Lightbox ──
+    const lightbox = document.getElementById('lightbox');
+    const lbImg    = document.getElementById('lightbox-img');
+    const lbClose  = document.getElementById('lightbox-close');
+
+    galleryItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const src = item.querySelector('img').src;
+        lbImg.src = src;
+        lightbox.classList.add('open');
+        document.body.style.overflow = 'hidden';
+      });
+    });
+
+    function closeLightbox() {
+      lightbox.classList.remove('open');
+      document.body.style.overflow = '';
+      setTimeout(() => lbImg.src = '', 300);
+    }
+
+    lbClose.addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+    // ── Contact Form Feedback ──
+    document.getElementById('contact-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const btn = this.querySelector('button[type="submit"]');
+      btn.textContent = 'Sent ✓';
+      btn.style.background = '#7A9E7E';
+      btn.style.color = '#F5F0E8';
+      setTimeout(() => {
+        btn.textContent = 'Send Message';
+        btn.style.background = '';
+        btn.style.color = '';
+        this.reset();
+      }, 3000);
+    });
+
+    // ── Animate hero reveal on load ──
+    document.querySelectorAll('.reveal').forEach((el, i) => {
+      if (el.getBoundingClientRect().top < window.innerHeight) {
+        setTimeout(() => el.classList.add('visible'), i * 100 + 200);
+      }
+    });
+  </script>
+</body>
+</html>
