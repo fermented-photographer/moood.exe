@@ -273,6 +273,116 @@
       z-index: 200;
       transition: width 0.1s;
     }
+
+    /* ── Upload Panel ── */
+    #upload-trigger {
+      position: fixed; bottom: 2rem; right: 2rem;
+      z-index: 500;
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--charcoal);
+      border: 1px solid rgba(245,240,232,0.12);
+      display: flex; align-items: center; justify-content: center;
+      cursor: none;
+      transition: border-color 0.3s, background 0.3s;
+    }
+    #upload-trigger:hover { border-color: var(--rust); background: rgba(200,75,49,0.1); }
+    #upload-trigger svg { width: 18px; height: 18px; stroke: rgba(245,240,232,0.4); transition: stroke 0.3s; }
+    #upload-trigger:hover svg { stroke: var(--rust); }
+
+    #upload-panel {
+      position: fixed; bottom: 5.5rem; right: 2rem;
+      z-index: 500;
+      width: 360px;
+      background: #111;
+      border: 1px solid rgba(245,240,232,0.08);
+      padding: 2rem;
+      transform: translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    #upload-panel.open { opacity: 1; transform: translateY(0); pointer-events: all; }
+
+    #drop-zone {
+      border: 1px dashed rgba(245,240,232,0.15);
+      padding: 2.5rem 1rem;
+      text-align: center;
+      transition: border-color 0.3s, background 0.3s;
+      cursor: none;
+      position: relative;
+    }
+    #drop-zone.drag-over { border-color: var(--amber); background: rgba(232,168,56,0.05); }
+    #drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: none; width: 100%; height: 100%;
+      border: none; padding: 0;
+    }
+
+    .upload-preview-strip {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-top: 1rem;
+    }
+    .upload-preview-strip img {
+      width: 56px; height: 56px; object-fit: cover;
+      border: 1px solid rgba(245,240,232,0.1);
+      flex-shrink: 0;
+    }
+
+    #upload-category-select {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(245,240,232,0.15);
+      color: var(--cream);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      padding: 0.5rem 0;
+      width: 100%;
+      outline: none;
+      margin-top: 1rem;
+      cursor: none;
+      appearance: none;
+    }
+    #upload-category-select option { background: #111; color: var(--cream); }
+
+    .upload-btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 10px 0;
+      width: 100%;
+      margin-top: 1rem;
+      background: var(--rust);
+      color: var(--cream);
+      border: none;
+      cursor: none;
+      transition: background 0.25s;
+    }
+    .upload-btn:hover { background: var(--amber); color: var(--charcoal); }
+    .upload-btn:disabled { background: rgba(245,240,232,0.1); color: rgba(245,240,232,0.3); cursor: not-allowed; }
+
+    .clear-btn {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 6px 0;
+      width: 100%;
+      margin-top: 0.5rem;
+      background: transparent;
+      color: rgba(245,240,232,0.25);
+      border: 1px solid rgba(245,240,232,0.08);
+      cursor: none;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .clear-btn:hover { color: rgba(245,240,232,0.6); border-color: rgba(245,240,232,0.25); }
+
+    .uploaded-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.6rem; letter-spacing: 0.12em; text-transform: uppercase;
+      color: var(--sage); margin-top: 0.75rem;
+    }
   </style>
 </head>
 <body class="grain">
@@ -288,6 +398,45 @@
   <div id="lightbox">
     <span id="lightbox-close">[ CLOSE — ESC ]</span>
     <img id="lightbox-img" src="" alt="" />
+  </div>
+
+  <!-- ═══════════ UPLOAD PANEL (Photographer Only) ═══════════ -->
+  <button id="upload-trigger" title="Photographer Upload" aria-label="Upload photos">
+    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/>
+    </svg>
+  </button>
+
+  <div id="upload-panel">
+    <div class="font-mono text-xs tracking-widest uppercase text-rust mb-1">Photographer Upload</div>
+    <div class="font-mono text-xs text-cream/25 mb-4" style="font-size:0.62rem;">Photos are saved in your browser — no server needed.</div>
+
+    <div id="drop-zone">
+      <input type="file" id="photo-input" accept="image/*" multiple />
+      <svg viewBox="0 0 24 24" fill="none" stroke="rgba(245,240,232,0.2)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="width:32px;height:32px;margin:0 auto 0.75rem;">
+        <path d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3 19.5h18M3.75 4.5h16.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H3.75a.75.75 0 01-.75-.75V5.25a.75.75 0 01.75-.75z"/>
+      </svg>
+      <div class="font-mono text-xs text-cream/30 tracking-widest uppercase">Drop photos here</div>
+      <div class="font-mono text-cream/15 mt-1" style="font-size:0.6rem;letter-spacing:0.08em;">or click to browse — select multiple</div>
+    </div>
+
+    <div class="upload-preview-strip" id="preview-strip"></div>
+
+    <select id="upload-category-select">
+      <option value="portrait">Portrait</option>
+      <option value="landscape">Landscape</option>
+      <option value="street">Street</option>
+      <option value="editorial">Editorial</option>
+    </select>
+    <div class="font-mono text-cream/20 mt-1" style="font-size:0.58rem;letter-spacing:0.1em;">Category applied to all selected photos</div>
+
+    <button class="upload-btn" id="do-upload" disabled>Add to Gallery</button>
+    <button class="clear-btn" id="clear-uploads">Clear All Uploaded Photos</button>
+
+    <div class="uploaded-badge" id="upload-count" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:10px;height:10px;"><path d="M4.5 12.75l6 6 9-13.5"/></svg>
+      <span id="upload-count-text"></span>
+    </div>
   </div>
 
   <!-- ═══════════ NAV ═══════════ -->
@@ -676,7 +825,6 @@
       cursor.style.top  = my + 'px';
     });
 
-    // Smooth ring follow
     (function animRing() {
       rx += (mx - rx) * 0.12;
       ry += (my - ry) * 0.12;
@@ -685,10 +833,13 @@
       requestAnimationFrame(animRing);
     })();
 
-    document.querySelectorAll('a, button, .gallery-item, .filter-btn').forEach(el => {
-      el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
-      el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
-    });
+    function bindHover() {
+      document.querySelectorAll('a, button, .gallery-item, .filter-btn').forEach(el => {
+        el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+        el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+      });
+    }
+    bindHover();
 
     // ── Scroll Progress Bar ──
     window.addEventListener('scroll', () => {
@@ -698,40 +849,40 @@
     });
 
     // ── Scroll Reveal ──
-    const observer = new IntersectionObserver((entries) => {
+    const revealObserver = new IntersectionObserver((entries) => {
       entries.forEach((e, i) => {
         if (e.isIntersecting) {
           setTimeout(() => e.target.classList.add('visible'), i * 80);
-          observer.unobserve(e.target);
+          revealObserver.unobserve(e.target);
         }
       });
     }, { threshold: 0.1 });
 
-    document.querySelectorAll('.reveal, .reveal-left').forEach(el => observer.observe(el));
+    function observeReveal() {
+      document.querySelectorAll('.reveal:not(.visible), .reveal-left:not(.visible)').forEach(el => revealObserver.observe(el));
+    }
+    observeReveal();
 
     // ── Gallery Filter ──
-    const filterBtns = document.querySelectorAll('.filter-btn');
-    const galleryItems = document.querySelectorAll('.gallery-item');
-
-    filterBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        filterBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const filter = btn.dataset.filter;
-        galleryItems.forEach(item => {
-          const match = filter === 'all' || item.dataset.category === filter;
-          item.style.transition = 'opacity 0.4s, transform 0.4s';
-          if (match) {
-            item.style.opacity = '1';
-            item.style.transform = 'scale(1)';
-            item.style.display = '';
-          } else {
-            item.style.opacity = '0';
-            item.style.transform = 'scale(0.95)';
-            setTimeout(() => { if (!match) item.style.display = 'none'; }, 400);
-          }
-        });
+    function applyFilter(filter) {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === filter));
+      document.querySelectorAll('.gallery-item').forEach(item => {
+        const match = filter === 'all' || item.dataset.category === filter;
+        item.style.transition = 'opacity 0.4s, transform 0.4s';
+        if (match) {
+          item.style.opacity = '1';
+          item.style.transform = 'scale(1)';
+          item.style.display = '';
+        } else {
+          item.style.opacity = '0';
+          item.style.transform = 'scale(0.95)';
+          setTimeout(() => { if (item.style.opacity === '0') item.style.display = 'none'; }, 400);
+        }
       });
+    }
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => applyFilter(btn.dataset.filter));
     });
 
     // ── Lightbox ──
@@ -739,20 +890,24 @@
     const lbImg    = document.getElementById('lightbox-img');
     const lbClose  = document.getElementById('lightbox-close');
 
-    galleryItems.forEach(item => {
-      item.addEventListener('click', () => {
-        const src = item.querySelector('img').src;
-        lbImg.src = src;
-        lightbox.classList.add('open');
-        document.body.style.overflow = 'hidden';
-      });
-    });
+    function openLightbox(src) {
+      lbImg.src = src;
+      lightbox.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
 
     function closeLightbox() {
       lightbox.classList.remove('open');
       document.body.style.overflow = '';
       setTimeout(() => lbImg.src = '', 300);
     }
+
+    function bindGalleryItems() {
+      document.querySelectorAll('.gallery-item').forEach(item => {
+        item.onclick = () => openLightbox(item.querySelector('img').src);
+      });
+    }
+    bindGalleryItems();
 
     lbClose.addEventListener('click', closeLightbox);
     lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
@@ -773,12 +928,198 @@
       }, 3000);
     });
 
-    // ── Animate hero reveal on load ──
+    // ── Hero reveal on load ──
     document.querySelectorAll('.reveal').forEach((el, i) => {
       if (el.getBoundingClientRect().top < window.innerHeight) {
         setTimeout(() => el.classList.add('visible'), i * 100 + 200);
       }
     });
+
+
+    // ════════════════════════════════════════════
+    // ── PHOTOGRAPHER UPLOAD SYSTEM ──
+    // ════════════════════════════════════════════
+
+    const STORAGE_KEY = 'portfolio_uploaded_photos';
+    const TAG_COLORS  = { portrait: 'amber', landscape: 'sage', street: 'rust', editorial: 'blush' };
+
+    // Panel toggle
+    const uploadTrigger = document.getElementById('upload-trigger');
+    const uploadPanel   = document.getElementById('upload-panel');
+    uploadTrigger.addEventListener('click', () => {
+      uploadPanel.classList.toggle('open');
+    });
+    document.addEventListener('click', e => {
+      if (!uploadPanel.contains(e.target) && e.target !== uploadTrigger) {
+        uploadPanel.classList.remove('open');
+      }
+    });
+
+    // ── State: pending files chosen but not yet added ──
+    let pendingFiles = [];
+
+    const photoInput    = document.getElementById('photo-input');
+    const previewStrip  = document.getElementById('preview-strip');
+    const doUploadBtn   = document.getElementById('do-upload');
+    const clearBtn      = document.getElementById('clear-uploads');
+    const countBadge    = document.getElementById('upload-count');
+    const countText     = document.getElementById('upload-count-text');
+    const dropZone      = document.getElementById('drop-zone');
+    const categorySelect = document.getElementById('upload-category-select');
+
+    function showPreviews(files) {
+      previewStrip.innerHTML = '';
+      files.forEach(file => {
+        const url = URL.createObjectURL(file);
+        const img = document.createElement('img');
+        img.src = url;
+        img.title = file.name;
+        previewStrip.appendChild(img);
+      });
+      doUploadBtn.disabled = files.length === 0;
+    }
+
+    photoInput.addEventListener('change', () => {
+      pendingFiles = Array.from(photoInput.files);
+      showPreviews(pendingFiles);
+    });
+
+    // Drag & drop on the zone
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      pendingFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+      showPreviews(pendingFiles);
+    });
+
+    // ── Convert file to base64 ──
+    function fileToBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // ── Load saved photos from localStorage into gallery ──
+    function loadSavedPhotos() {
+      let saved = [];
+      try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) {}
+      saved.forEach(photo => injectPhotoIntoGallery(photo, false));
+      updateCountBadge(saved.length);
+    }
+
+    // ── Inject a single photo object into the gallery DOM ──
+    function injectPhotoIntoGallery(photo, animate) {
+      const gallery   = document.getElementById('gallery');
+      const colorKey  = TAG_COLORS[photo.category] || 'amber';
+      const item = document.createElement('div');
+      item.className = 'gallery-item' + (animate ? ' reveal' : ' reveal visible');
+      item.dataset.category = photo.category;
+      item.dataset.uploaded = 'true';
+      item.innerHTML = `
+        <img src="${photo.dataUrl}" alt="${photo.name}" loading="lazy" />
+        <div class="overlay">
+          <div>
+            <span class="tag text-${colorKey} border-${colorKey}">${photo.category}</span>
+            <p class="font-serif italic text-cream/80 text-sm mt-2">${photo.label}</p>
+          </div>
+        </div>`;
+      gallery.appendChild(item);
+      if (animate) {
+        requestAnimationFrame(() => {
+          revealObserver.observe(item);
+        });
+      }
+      // bind lightbox & hover
+      item.onclick = () => openLightbox(item.querySelector('img').src);
+      item.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+      item.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+    }
+
+    // ── Update the badge showing how many photos are uploaded ──
+    function updateCountBadge(count) {
+      if (count > 0) {
+        countText.textContent = `${count} photo${count !== 1 ? 's' : ''} in gallery`;
+        countBadge.style.display = 'inline-flex';
+      } else {
+        countBadge.style.display = 'none';
+      }
+    }
+
+    // ── Do Upload: read files → base64 → save → inject ──
+    doUploadBtn.addEventListener('click', async () => {
+      if (!pendingFiles.length) return;
+
+      doUploadBtn.disabled = true;
+      doUploadBtn.textContent = 'Adding…';
+
+      const category = categorySelect.value;
+      let saved = [];
+      try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(e) {}
+
+      const year = new Date().getFullYear();
+
+      for (const file of pendingFiles) {
+        // Check storage won't overflow — base64 ~1.37× file size
+        const approxKB = (file.size * 1.37) / 1024;
+        if (approxKB > 3000) {
+          // Warn but still try; localStorage is ~5MB total
+          console.warn(`${file.name} is large (${Math.round(approxKB)}KB encoded) — may hit storage limits.`);
+        }
+
+        try {
+          const dataUrl = await fileToBase64(file);
+          const nameLabel = file.name.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ');
+          const photo = { dataUrl, category, name: nameLabel, label: `${nameLabel}, ${year}`, id: Date.now() + Math.random() };
+          saved.push(photo);
+          injectPhotoIntoGallery(photo, true);
+        } catch(err) {
+          console.error('Failed to read', file.name, err);
+        }
+      }
+
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+      } catch(e) {
+        // Storage quota exceeded
+        alert('Storage full! Try clearing old uploads or use smaller images.');
+        console.error('localStorage quota exceeded', e);
+      }
+
+      updateCountBadge(saved.length);
+
+      // Reset pending state
+      pendingFiles = [];
+      previewStrip.innerHTML = '';
+      photoInput.value = '';
+      doUploadBtn.textContent = `Added ✓`;
+      doUploadBtn.style.background = '#7A9E7E';
+      setTimeout(() => {
+        doUploadBtn.textContent = 'Add to Gallery';
+        doUploadBtn.style.background = '';
+        doUploadBtn.disabled = true;
+      }, 2000);
+    });
+
+    // ── Clear all uploaded photos ──
+    clearBtn.addEventListener('click', () => {
+      if (!confirm('Remove all your uploaded photos from the gallery?')) return;
+      localStorage.removeItem(STORAGE_KEY);
+      document.querySelectorAll('.gallery-item[data-uploaded="true"]').forEach(el => el.remove());
+      updateCountBadge(0);
+      pendingFiles = [];
+      previewStrip.innerHTML = '';
+      photoInput.value = '';
+      doUploadBtn.disabled = true;
+    });
+
+    // ── On page load: restore saved photos ──
+    loadSavedPhotos();
+
   </script>
 </body>
 </html>
